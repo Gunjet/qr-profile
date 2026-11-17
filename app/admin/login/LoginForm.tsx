@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { login } from "@/app/actions";
+import { adminLogin } from "@/app/actions";
 
 export function LoginForm() {
-  const [error, action, pending] = useActionState(login, null);
+  const [error, action, pending] = useActionState(adminLogin, null);
 
   return (
     <form action={action} className="space-y-4 p-8">

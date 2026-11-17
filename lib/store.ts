@@ -1,146 +1,215 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { connection } from "next/server";
-import { Pool } from "pg";
-import { attachDatabasePool } from "@vercel/functions";
-import type { Person } from "./types";
+import type { Payment, PaymentRequest, Person } from "./types";
 import { themeOf } from "./themes";
+import { BILLING } from "./billing";
+import { pool } from "./db";
 
-// Storage:
-//  - DATABASE_URL (or POSTGRES_URL) set  → Postgres (Neon). Used on Vercel.
-//  - otherwise                           → local JSON file in ./data (dev only).
+// All data lives in Postgres (Neon). Schema: db/*.sql
 
-export type PersonInput = Omit<Person, "id" | "createdAt" | "updatedAt">;
+export type PersonInput = Omit<Person, "id" | "createdAt" | "updatedAt" | "paidUntil" | "ownerId" | "ownerPhone">;
 
-const DB_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-
-const normalize = (p: Person): Person => ({ ...p, theme: themeOf(p.theme) });
 const newId = () => randomBytes(5).toString("base64url");
 
-// ───────────────────────── Postgres ─────────────────────────
-// node-postgres pool on the pooled DATABASE_URL. On Vercel (Fluid compute)
-// attachDatabasePool lets idle clients close cleanly before the instance suspends.
-// Schema lives in db/*.sql — run `npm run db:migrate`.
-
-const globalForPg = globalThis as unknown as { pgPool?: Pool };
-
-function pool(): Pool {
-  if (!DB_URL) throw new Error("DATABASE_URL is not set");
-  if (!/^postgres(ql)?:\/\//.test(DB_URL)) {
-    throw new Error(
-      'DATABASE_URL must start with "postgresql://" (no quotes, no "DATABASE_URL=" prefix, single line). Fix it in Vercel → Settings → Environment Variables and redeploy.',
-    );
-  }
-  if (!globalForPg.pgPool) {
-    globalForPg.pgPool = new Pool({ connectionString: DB_URL, max: 5, idleTimeoutMillis: 5_000 });
-    attachDatabasePool(globalForPg.pgPool);
-  }
-  return globalForPg.pgPool;
-}
-
-type Row = { id: string; data: PersonInput; created_at: Date; updated_at: Date };
-const COLS = "id, data, created_at, updated_at";
-const fromRow = (r: Row): Person =>
-  normalize({
-    ...r.data,
-    id: r.id,
-    createdAt: new Date(r.created_at).toISOString(),
-    updatedAt: new Date(r.updated_at).toISOString(),
-  });
-
-const pg = {
-  async list() {
-    const { rows } = await pool().query<Row>(`SELECT ${COLS} FROM people ORDER BY created_at DESC`);
-    return rows.map(fromRow);
-  },
-  async get(id: string) {
-    const { rows } = await pool().query<Row>(`SELECT ${COLS} FROM people WHERE id = $1`, [id]);
-    return rows[0] ? fromRow(rows[0]) : null;
-  },
-  async create(input: PersonInput) {
-    const { rows } = await pool().query<Row>(
-      `INSERT INTO people (id, data) VALUES ($1, $2::jsonb) RETURNING ${COLS}`,
-      [newId(), JSON.stringify(input)],
-    );
-    return fromRow(rows[0]);
-  },
-  async update(id: string, input: PersonInput) {
-    const { rows } = await pool().query<Row>(
-      `UPDATE people SET data = $2::jsonb, updated_at = now() WHERE id = $1 RETURNING ${COLS}`,
-      [id, JSON.stringify(input)],
-    );
-    return rows[0] ? fromRow(rows[0]) : null;
-  },
-  async remove(id: string) {
-    await pool().query(`DELETE FROM people WHERE id = $1`, [id]);
-  },
+type Row = {
+  id: string;
+  data: PersonInput;
+  paid_until: Date | null;
+  owner_id: string | null;
+  owner_phone?: string | null;
+  created_at: Date;
+  updated_at: Date;
 };
+const COLS = "p.id, p.data, p.paid_until, p.owner_id, p.created_at, p.updated_at";
+const iso = (d: Date) => new Date(d).toISOString();
+const fromRow = (r: Row): Person => ({
+  ...r.data,
+  theme: themeOf(r.data.theme),
+  id: r.id,
+  paidUntil: r.paid_until ? iso(r.paid_until) : null,
+  ownerId: r.owner_id,
+  ownerPhone: r.owner_phone ?? null,
+  createdAt: iso(r.created_at),
+  updatedAt: iso(r.updated_at),
+});
 
-// ───────────────────────── JSON file (local dev) ─────────────────────────
-
-const DATA_FILE = path.join(process.cwd(), "data", "people.json");
-
-async function readAll(): Promise<Person[]> {
-  try {
-    return (JSON.parse(await fs.readFile(DATA_FILE, "utf8")) as Person[]).map(normalize);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw err;
-  }
-}
-
-async function writeAll(people: Person[]) {
-  if (process.env.VERCEL) {
-    throw new Error("Vercel дээр DATABASE_URL тохируулаагүй байна. Neon Postgres холбоно уу.");
-  }
-  await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
-  const tmp = DATA_FILE + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(people, null, 2), "utf8");
-  await fs.rename(tmp, DATA_FILE);
-}
-
-const file = {
-  async list() {
-    return (await readAll()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  },
-  async get(id: string) {
-    return (await readAll()).find((p) => p.id === id) ?? null;
-  },
-  async create(input: PersonInput) {
-    const people = await readAll();
-    const now = new Date().toISOString();
-    const person: Person = { ...input, id: newId(), createdAt: now, updatedAt: now };
-    await writeAll([...people, person]);
-    return person;
-  },
-  async update(id: string, input: PersonInput) {
-    const people = await readAll();
-    const idx = people.findIndex((p) => p.id === id);
-    if (idx === -1) return null;
-    people[idx] = { ...people[idx], ...input, updatedAt: new Date().toISOString() };
-    await writeAll(people);
-    return people[idx];
-  },
-  async remove(id: string) {
-    await writeAll((await readAll()).filter((p) => p.id !== id));
-  },
-};
-
-const backend = DB_URL ? pg : file;
-
-// ───────────────────────── Public API ─────────────────────────
+// ───────────── People ─────────────
 
 export async function listPeople(): Promise<Person[]> {
   await connection();
-  return backend.list();
+  const { rows } = await pool().query<Row>(
+    `SELECT ${COLS}, u.phone AS owner_phone
+       FROM people p LEFT JOIN users u ON u.id = p.owner_id
+      ORDER BY p.created_at DESC`,
+  );
+  return rows.map(fromRow);
 }
 
 export async function getPerson(id: string): Promise<Person | null> {
   await connection();
-  return backend.get(id);
+  const { rows } = await pool().query<Row>(
+    `SELECT ${COLS}, u.phone AS owner_phone
+       FROM people p LEFT JOIN users u ON u.id = p.owner_id WHERE p.id = $1`,
+    [id],
+  );
+  return rows[0] ? fromRow(rows[0]) : null;
 }
 
-export const createPerson = (input: PersonInput) => backend.create(input);
-export const updatePerson = (id: string, input: PersonInput) => backend.update(id, input);
-export const deletePerson = (id: string) => backend.remove(id);
+export async function getPersonByOwner(userId: string): Promise<Person | null> {
+  await connection();
+  const { rows } = await pool().query<Row>(`SELECT ${COLS} FROM people p WHERE p.owner_id = $1`, [userId]);
+  return rows[0] ? fromRow(rows[0]) : null;
+}
+
+/**
+ * Admin-created profiles start with a free trial. Self-service profiles start
+ * unpaid (paid_until NULL) and go live once their first payment is confirmed.
+ */
+export async function createPerson(input: PersonInput, opts: { ownerId?: string } = {}) {
+  const trialDays = opts.ownerId ? null : BILLING.trialDays;
+  const { rows } = await pool().query<Row>(
+    `INSERT INTO people AS p (id, data, owner_id, paid_until)
+     VALUES ($1, $2::jsonb, $3, CASE WHEN $4::int IS NULL THEN NULL ELSE now() + make_interval(days => $4::int) END)
+     RETURNING ${COLS}`,
+    [newId(), JSON.stringify(input), opts.ownerId ?? null, trialDays],
+  );
+  return fromRow(rows[0]);
+}
+
+export async function updatePerson(id: string, input: PersonInput) {
+  const { rows } = await pool().query<Row>(
+    `UPDATE people AS p SET data = $2::jsonb, updated_at = now() WHERE p.id = $1 RETURNING ${COLS}`,
+    [id, JSON.stringify(input)],
+  );
+  return rows[0] ? fromRow(rows[0]) : null;
+}
+
+export async function deletePerson(id: string) {
+  await pool().query(`DELETE FROM people WHERE id = $1`, [id]);
+}
+
+// ───────────── Subscription ─────────────
+
+export async function extendSubscription(id: string, months: number, amount: number) {
+  // One atomic statement: push paid_until forward and record the payment.
+  const { rows } = await pool().query<{ paid_until: Date }>(
+    `WITH u AS (
+       UPDATE people
+          SET paid_until = GREATEST(COALESCE(paid_until, now()), now()) + make_interval(months => $2)
+        WHERE id = $1
+        RETURNING id, paid_until
+     )
+     INSERT INTO payments (person_id, months, amount, paid_until)
+     SELECT id, $2, $3, paid_until FROM u
+     RETURNING paid_until`,
+    [id, months, amount],
+  );
+  return rows[0] ? iso(rows[0].paid_until) : null;
+}
+
+export async function setPaidUntil(id: string, isoDate: string) {
+  await pool().query(`UPDATE people SET paid_until = $2 WHERE id = $1`, [id, isoDate]);
+}
+
+type PayRow = { id: string; person_id: string; months: number; amount: number; paid_until: Date; created_at: Date };
+
+export async function listPayments(id: string): Promise<Payment[]> {
+  await connection();
+  const { rows } = await pool().query<PayRow>(
+    `SELECT id, person_id, months, amount, paid_until, created_at
+       FROM payments WHERE person_id = $1 ORDER BY created_at DESC LIMIT 20`,
+    [id],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    personId: r.person_id,
+    months: r.months,
+    amount: r.amount,
+    paidUntil: iso(r.paid_until),
+    createdAt: iso(r.created_at),
+  }));
+}
+
+// ───────────── Payment requests (user says "I transferred", admin confirms) ─────────────
+
+type ReqRow = {
+  id: string;
+  person_id: string;
+  person_name: string;
+  owner_phone: string | null;
+  months: number;
+  amount: number;
+  status: PaymentRequest["status"];
+  created_at: Date;
+};
+const REQ_SELECT = `
+  SELECT r.id, r.person_id, p.data->>'name' AS person_name, u.phone AS owner_phone,
+         r.months, r.amount, r.status, r.created_at
+    FROM payment_requests r
+    JOIN people p ON p.id = r.person_id
+    LEFT JOIN users u ON u.id = p.owner_id`;
+const fromReq = (r: ReqRow): PaymentRequest => ({
+  id: String(r.id),
+  personId: r.person_id,
+  personName: r.person_name,
+  ownerPhone: r.owner_phone,
+  months: r.months,
+  amount: r.amount,
+  status: r.status,
+  createdAt: iso(r.created_at),
+});
+
+/** Returns false if a request is already pending for this profile. */
+export async function createPaymentRequest(personId: string, months: number, amount: number) {
+  const { rowCount } = await pool().query(
+    `INSERT INTO payment_requests (person_id, months, amount) VALUES ($1, $2, $3)
+     ON CONFLICT (person_id) WHERE status = 'pending' DO NOTHING`,
+    [personId, months, amount],
+  );
+  return rowCount === 1;
+}
+
+export async function getPendingRequest(personId: string): Promise<PaymentRequest | null> {
+  await connection();
+  const { rows } = await pool().query<ReqRow>(`${REQ_SELECT} WHERE r.person_id = $1 AND r.status = 'pending'`, [
+    personId,
+  ]);
+  return rows[0] ? fromReq(rows[0]) : null;
+}
+
+export async function listPendingRequests(): Promise<PaymentRequest[]> {
+  await connection();
+  const { rows } = await pool().query<ReqRow>(`${REQ_SELECT} WHERE r.status = 'pending' ORDER BY r.created_at`);
+  return rows.map(fromReq);
+}
+
+/** Confirms a pending request, extends the subscription and records the payment — atomically. */
+export async function confirmRequest(requestId: string) {
+  const { rows } = await pool().query<{ person_id: string }>(
+    `WITH r AS (
+       UPDATE payment_requests SET status = 'confirmed', decided_at = now()
+        WHERE id = $1 AND status = 'pending'
+        RETURNING person_id, months, amount
+     ), u AS (
+       UPDATE people p
+          SET paid_until = GREATEST(COALESCE(p.paid_until, now()), now()) + make_interval(months => r.months)
+         FROM r WHERE p.id = r.person_id
+        RETURNING p.id, p.paid_until, r.months, r.amount
+     )
+     INSERT INTO payments (person_id, months, amount, paid_until)
+     SELECT id, months, amount, paid_until FROM u
+     RETURNING person_id`,
+    [requestId],
+  );
+  return rows[0]?.person_id ?? null;
+}
+
+export async function closeRequest(requestId: string, status: "rejected" | "cancelled", personId?: string) {
+  const { rows } = await pool().query<{ person_id: string }>(
+    `UPDATE payment_requests SET status = $2, decided_at = now()
+      WHERE id = $1 AND status = 'pending' AND ($3::text IS NULL OR person_id = $3)
+      RETURNING person_id`,
+    [requestId, status, personId ?? null],
+  );
+  return rows[0]?.person_id ?? null;
+}

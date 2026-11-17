@@ -1,11 +1,12 @@
 import { getPerson } from "@/lib/store";
+import { billingStatus } from "@/lib/billing";
 
 const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/[,;]/g, (m) => "\\" + m);
 
 export async function GET(_req: Request, ctx: RouteContext<"/p/[id]/vcard">) {
   const { id } = await ctx.params;
   const p = await getPerson(id);
-  if (!p) return new Response("Not found", { status: 404 });
+  if (!p || !billingStatus(p.paidUntil, new Date()).visible) return new Response("Not found", { status: 404 });
 
   const lines = [
     "BEGIN:VCARD",

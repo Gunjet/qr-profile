@@ -1,21 +1,31 @@
 "use server";
 
+// Admin server actions. (Self-service user actions live in app/account-actions.ts.)
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createPerson, deletePerson, updatePerson, type PersonInput } from "@/lib/store";
-import { SOCIAL_TYPES, type SocialType } from "@/lib/types";
-import { themeOf } from "@/lib/themes";
 import { cookies } from "next/headers";
+import {
+  closeRequest,
+  confirmRequest,
+  createPerson,
+  deletePerson,
+  extendSubscription,
+  setPaidUntil,
+  updatePerson,
+} from "@/lib/store";
+import { BILLING, EXTEND_OPTIONS } from "@/lib/billing";
+import { parsePersonForm } from "@/lib/person-form";
 import { SESSION_COOKIE, SESSION_MAX_AGE, checkPassword, isValidSession, sessionToken } from "@/lib/auth";
 
 // Server actions are reachable by direct POST requests, so every mutating
 // action re-checks the admin session (proxy.ts only guards page navigation).
 async function requireAdmin() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await isValidSession(token))) redirect("/login");
+  if (!(await isValidSession(token))) redirect("/admin/login");
 }
 
-export async function login(_prev: string | null, formData: FormData): Promise<string | null> {
+export async function adminLogin(_prev: string | null, formData: FormData): Promise<string | null> {
   const pw = String(formData.get("password") ?? "");
   if (!(await checkPassword(pw))) {
     await new Promise((r) => setTimeout(r, 600)); // slow down guessing
@@ -31,65 +41,24 @@ export async function login(_prev: string | null, formData: FormData): Promise<s
   redirect("/admin");
 }
 
-export async function logout() {
+export async function adminLogout() {
   (await cookies()).delete(SESSION_COOKIE);
-  redirect("/login");
+  redirect("/admin/login");
 }
 
-const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
-const all = (fd: FormData, key: string) => fd.getAll(key).map((v) => String(v).trim());
-
-function parse(fd: FormData): PersonInput {
-  const periods = all(fd, "exp_period");
-  const titles = all(fd, "exp_title");
-  const experience = titles
-    .map((title, i) => ({ period: periods[i] ?? "", title }))
-    .filter((e) => e.title || e.period);
-
-  const sTypes = all(fd, "social_type");
-  const sLabels = all(fd, "social_label");
-  const sUrls = all(fd, "social_url");
-  const validTypes = new Set(SOCIAL_TYPES.map((s) => s.value));
-  const socials = sUrls
-    .map((url, i) => ({
-      type: (validTypes.has(sTypes[i] as SocialType) ? sTypes[i] : "website") as SocialType,
-      label: sLabels[i] ?? "",
-      url,
-    }))
-    .filter((s) => s.url);
-
-  const photo = str(fd, "photo");
-
-  return {
-    name: str(fd, "name"),
-    position: str(fd, "position"),
-    organization: str(fd, "organization"),
-    photo: photo.startsWith("data:image/") ? photo : "",
-    about: str(fd, "about"),
-    experience,
-    phones: all(fd, "phone").filter(Boolean),
-    email: str(fd, "email"),
-    address: str(fd, "address"),
-    mapUrl: str(fd, "mapUrl"),
-    socials,
-    theme: themeOf(str(fd, "theme")),
-  };
+function revalidateProfile(id: string) {
+  revalidatePath("/admin");
+  revalidatePath(`/p/${id}`);
+  revalidatePath("/account");
 }
 
 export async function savePerson(id: string | null, formData: FormData) {
   await requireAdmin();
-  const input = parse(formData);
+  const input = parsePersonForm(formData);
   if (!input.name) throw new Error("Нэр оруулна уу");
 
-  let personId = id;
-  if (id) {
-    await updatePerson(id, input);
-  } else {
-    personId = (await createPerson(input)).id;
-  }
-
-  revalidatePath("/admin");
-  revalidatePath(`/p/${personId}`);
+  const personId = id ? (await updatePerson(id, input), id) : (await createPerson(input)).id;
+  revalidateProfile(personId);
   redirect(`/admin/${personId}${id ? "?saved=1" : "?created=1"}`);
 }
 
@@ -98,4 +67,38 @@ export async function removePerson(id: string) {
   await deletePerson(id);
   revalidatePath("/admin");
   redirect("/admin");
+}
+
+// ───────────── Billing ─────────────
+
+export async function extendPaid(id: string, months: number) {
+  await requireAdmin();
+  if (!(EXTEND_OPTIONS as readonly number[]).includes(months)) throw new Error("Invalid months");
+  await extendSubscription(id, months, months * BILLING.monthlyPrice);
+  revalidateProfile(id);
+  redirect(`/admin/${id}?paid=${months}`);
+}
+
+export async function changePaidUntil(id: string, formData: FormData) {
+  await requireAdmin();
+  const date = String(formData.get("paidUntil") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid date");
+  // End of that day in Ulaanbaatar time.
+  await setPaidUntil(id, new Date(`${date}T23:59:59+08:00`).toISOString());
+  revalidateProfile(id);
+  redirect(`/admin/${id}?dated=1`);
+}
+
+export async function confirmPaymentRequest(requestId: string) {
+  await requireAdmin();
+  const personId = await confirmRequest(requestId);
+  if (personId) revalidateProfile(personId);
+  revalidatePath("/admin");
+}
+
+export async function rejectPaymentRequest(requestId: string) {
+  await requireAdmin();
+  const personId = await closeRequest(requestId, "rejected");
+  if (personId) revalidateProfile(personId);
+  revalidatePath("/admin");
 }

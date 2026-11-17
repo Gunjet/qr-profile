@@ -1,10 +1,25 @@
 import Link from "next/link";
-import { listPeople } from "@/lib/store";
+import { listPendingRequests, listPeople } from "@/lib/store";
 import { PlusIcon, QrIcon, ArrowUpRightIcon } from "@/lib/icons";
-import { Avatar } from "./_components/Avatar";
+import { Avatar } from "@/app/_components/Avatar";
+import { StatusBadge } from "@/app/_components/StatusBadge";
+import { billingStatus } from "@/lib/billing";
+import { PendingPayments } from "./_components/PendingPayments";
 
 export default async function AdminPage() {
-  const people = await listPeople();
+  const [people, pending] = await Promise.all([listPeople(), listPendingRequests()]);
+  const now = new Date();
+  const states = people.map((p) => (p.paidUntil ? billingStatus(p.paidUntil, now).state : "unpaid"));
+  const stats = [
+    { label: "Идэвхтэй", value: states.filter((s) => s === "active").length, dot: "bg-emerald-500" },
+    { label: "Удахгүй дуусах", value: states.filter((s) => s === "expiring").length, dot: "bg-amber-500" },
+    {
+      label: "Хугацаа дууссан",
+      value: states.filter((s) => s === "grace" || s === "expired").length,
+      dot: "bg-red-500",
+    },
+    { label: "Төлөөгүй", value: states.filter((s) => s === "unpaid").length, dot: "bg-slate-400" },
+  ];
 
   return (
     <div>
@@ -23,6 +38,22 @@ export default async function AdminPage() {
           Шинэ хүн нэмэх
         </Link>
       </div>
+
+      <PendingPayments requests={pending} />
+
+      {people.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                <span className={`size-2 rounded-full ${s.dot}`} />
+                {s.label}
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-slate-900">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {people.length === 0 ? (
         <div className="mt-10 rounded-3xl border-2 border-dashed border-slate-200 bg-white px-6 py-16 text-center">
@@ -60,7 +91,12 @@ export default async function AdminPage() {
                     {p.name}
                   </Link>
                   <p className="truncate text-sm font-semibold text-t-ink">{p.position || "—"}</p>
-                  <p className="mt-1 truncate text-xs text-slate-400">{p.organization || " "}</p>
+                  <p className="mt-1 truncate text-xs text-slate-400">
+                    {p.ownerPhone ? `👤 ${p.ownerPhone}` : p.organization || " "}
+                  </p>
+                  <div className="mt-3">
+                    <StatusBadge paidUntil={p.paidUntil} now={now} />
+                  </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-xs">
                   <span className="inline-flex items-center gap-1.5 font-semibold text-slate-500">

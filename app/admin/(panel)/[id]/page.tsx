@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPerson } from "@/lib/store";
+import { getPerson, listPayments } from "@/lib/store";
 import { removePerson, savePerson } from "@/app/actions";
 import { ChevronLeftIcon, TrashIcon } from "@/lib/icons";
-import { PersonForm } from "../_components/PersonForm";
-import { QRPanel } from "../_components/QRPanel";
+import { PersonForm } from "@/app/_components/PersonForm";
+import { QRPanel } from "@/app/_components/QRPanel";
+import { BillingPanel } from "../_components/BillingPanel";
 
 export default async function EditPersonPage({ params, searchParams }: PageProps<"/admin/[id]">) {
   const { id } = await params;
@@ -12,8 +13,19 @@ export default async function EditPersonPage({ params, searchParams }: PageProps
   const person = await getPerson(id);
   if (!person) notFound();
 
-  const created = sp.created === "1";
-  const saved = sp.saved === "1";
+  const payments = await listPayments(id);
+  const now = new Date();
+
+  const banner =
+    sp.created === "1"
+      ? "Амжилттай нэмлээ! QR код бэлэн боллоо — татаж аваад хэвлээрэй."
+      : sp.saved === "1"
+        ? "Өөрчлөлт хадгалагдлаа. QR код өөрчлөгдөхгүй тул дахин хэвлэх шаардлагагүй."
+        : typeof sp.paid === "string"
+          ? `Төлбөр бүртгэгдлээ: +${sp.paid} сар сунгалаа.`
+          : sp.dated === "1"
+            ? "Дуусах огноо шинэчлэгдлээ."
+            : null;
 
   return (
     <div>
@@ -34,19 +46,18 @@ export default async function EditPersonPage({ params, searchParams }: PageProps
         </form>
       </div>
 
-      {(created || saved) && (
+      {banner && (
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           <span className="grid size-6 place-items-center rounded-full bg-emerald-500 text-xs font-bold text-white">✓</span>
-          {created
-            ? "Амжилттай нэмлээ! QR код бэлэн боллоо — татаж аваад хэвлээрэй."
-            : "Өөрчлөлт хадгалагдлаа. QR код өөрчлөгдөхгүй тул дахин хэвлэх шаардлагагүй."}
+          {banner}
         </div>
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <PersonForm person={person} action={savePerson.bind(null, person.id)} submitLabel="Хадгалах" />
         <aside className="order-first lg:order-none">
-          <div className={`theme-${person.theme} space-y-6 lg:sticky lg:top-24`}>
+          <div className={`theme-${person.theme} space-y-6`}>
+            <BillingPanel person={person} payments={payments} now={now} />
             <QRPanel id={person.id} name={person.name} />
             <div className="hidden lg:block">
               <p className="mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">Урьдчилан харах</p>
@@ -54,7 +65,7 @@ export default async function EditPersonPage({ params, searchParams }: PageProps
                 <div className="relative h-[560px] overflow-hidden rounded-[2rem] bg-white">
                   <span className="absolute top-2 left-1/2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-slate-900" />
                   <iframe
-                    key={person.updatedAt}
+                    key={`${person.updatedAt}-${person.paidUntil}`}
                     src={`/p/${person.id}`}
                     title="Профайл урьдчилан харах"
                     className="h-[750px] w-[375px] origin-top-left scale-[0.7467] border-0"

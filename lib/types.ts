@@ -25,6 +25,9 @@ export type Person = {
   mapUrl: string;
   socials: Social[];
   theme: string;
+  paidUntil: string | null; // subscription end (ISO); managed by billing, not the profile form
+  ownerId: string | null; // self-service account that owns this profile; null = created by admin
+  ownerPhone?: string | null; // joined for admin views
   createdAt: string;
   updatedAt: string;
 };
@@ -36,3 +39,23 @@ export const SOCIAL_TYPES: { value: SocialType; label: string }[] = [
   { value: "x", label: "X (Twitter)" },
   { value: "website", label: "Вэбсайт" },
 ];
+
+export type Payment = {
+  id: string;
+  personId: string;
+  months: number;
+  amount: number;
+  paidUntil: string; // subscription end after this payment
+  createdAt: string;
+};
+
+export type PaymentRequest = {
+  id: string;
+  personId: string;
+  personName: string;
+  ownerPhone: string | null;
+  months: number;
+  amount: number;
+  status: "pending" | "confirmed" | "rejected" | "cancelled";
+  createdAt: string;
+};

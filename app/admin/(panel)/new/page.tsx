@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { savePerson } from "@/app/actions";
 import { ChevronLeftIcon } from "@/lib/icons";
-import { PersonForm } from "../_components/PersonForm";
+import { PersonForm } from "@/app/_components/PersonForm";
 
 export default function NewPersonPage() {
   return (
