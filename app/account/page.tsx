@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/users";
-import { getPendingRequest, getPersonByOwner } from "@/lib/store";
+import { getPendingRequest, getPersonByOwner, listPayments } from "@/lib/store";
 import { BILLING, EXTEND_OPTIONS, billingStatus, formatDate, formatMNT, refCode } from "@/lib/billing";
 import { cancelPaymentRequest } from "@/app/account-actions";
 import { CopyButton } from "@/app/_components/CopyButton";
@@ -22,6 +22,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
   const status = person ? billingStatus(person.paidUntil, now) : null;
   const live = !!status?.visible;
   const everPaid = !!person?.paidUntil;
+  // Paid and comfortably within the period → hide the payment form until renewal time.
+  const paidUp = status?.state === "active" && !pending;
+  const lastPayment = paidUp && person ? (await listPayments(person.id))[0] : undefined;
 
   const banner =
     sp.created === "1"
@@ -137,7 +140,32 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
               )}
             </section>
 
-            {/* Payment */}
+            {/* Paid up: confirmation instead of the payment form */}
+            {paidUp ? (
+              <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500 font-bold text-white">
+                    ✓
+                  </span>
+                  <div>
+                    <h2 className="font-bold text-emerald-900">Төлбөр төлөгдсөн</h2>
+                    <p className="mt-0.5 text-sm text-emerald-800">
+                      Таны профайл <span className="font-semibold">{formatDate(person.paidUntil)}</span> хүртэл идэвхтэй
+                      ({status!.daysLeft} хоног үлдсэн).
+                    </p>
+                    {lastPayment && (
+                      <p className="mt-2 text-xs text-emerald-700">
+                        Сүүлийн төлбөр: {formatDate(lastPayment.createdAt)} · {lastPayment.months} сар ·{" "}
+                        {formatMNT(lastPayment.amount)}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-emerald-700">
+                      Хугацаа дуусахаас {BILLING.expiringSoonDays} хоногийн өмнө сунгах товч энд гарч ирнэ.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : (
             <section className="rounded-2xl border border-slate-200/70 bg-white p-5">
               <h2 className="font-bold text-slate-900">{live ? "Хугацаа сунгах" : "Төлбөр төлөх"}</h2>
               <p className="mt-0.5 text-sm text-slate-500">
@@ -169,6 +197,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                 </div>
               )}
             </section>
+            )}
           </div>
 
           {/* QR */}
