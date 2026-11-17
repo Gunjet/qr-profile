@@ -1,3 +1,4 @@
+import { ArrowUpRightIcon } from "@/lib/icons";
 import { changePaidUntil, extendPaid } from "@/app/actions";
 import { BILLING, EXTEND_OPTIONS, formatDate, formatMNT, refCode, toDateInput } from "@/lib/billing";
 import type { Payment, Person } from "@/lib/types";
@@ -48,7 +49,10 @@ export function BillingPanel({ person, payments, now }: { person: Person; paymen
           rel="noopener noreferrer"
           className="flex-1 rounded-xl bg-slate-100 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-200"
         >
-          Төлбөрийн хуудас ↗
+          <span className="inline-flex items-center gap-1">
+            Төлбөрийн хуудас
+            <ArrowUpRightIcon className="size-3.5" />
+          </span>
         </a>
       </div>
 

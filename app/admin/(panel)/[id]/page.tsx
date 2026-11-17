@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPerson, listPayments } from "@/lib/store";
 import { removePerson, savePerson } from "@/app/actions";
-import { ChevronLeftIcon, TrashIcon } from "@/lib/icons";
+import { CheckIcon, ChevronLeftIcon, TrashIcon } from "@/lib/icons";
 import { PersonForm } from "@/app/_components/PersonForm";
 import { QRPanel } from "@/app/_components/QRPanel";
 import { BillingPanel } from "../_components/BillingPanel";
@@ -48,7 +48,9 @@ export default async function EditPersonPage({ params, searchParams }: PageProps
 
       {banner && (
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <span className="grid size-6 place-items-center rounded-full bg-emerald-500 text-xs font-bold text-white">✓</span>
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
+            <CheckIcon className="size-3.5" strokeWidth={3} />
+          </span>
           {banner}
         </div>
       )}

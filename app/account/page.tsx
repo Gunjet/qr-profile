@@ -8,7 +8,7 @@ import { CopyButton } from "@/app/_components/CopyButton";
 import { QRPanel } from "@/app/_components/QRPanel";
 import { StatusBadge } from "@/app/_components/StatusBadge";
 import { Avatar } from "@/app/_components/Avatar";
-import { EditIcon } from "@/lib/icons";
+import { ArrowUpRightIcon, CheckIcon, ClockIcon, EditIcon, LockIcon } from "@/lib/icons";
 import { PlanPicker } from "./PlanPicker";
 
 export default async function AccountPage({ searchParams }: PageProps<"/account">) {
@@ -46,8 +46,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
 
       {banner && (
         <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-xs font-bold text-white">
-            ✓
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
+            <CheckIcon className="size-3.5" strokeWidth={3} />
           </span>
           {banner}
         </div>
@@ -71,7 +71,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                   done ? "bg-emerald-500 text-white" : current ? "bg-brand-900 text-gold-400" : "bg-slate-200 text-slate-500"
                 }`}
               >
-                {done ? "✓" : n}
+                {done ? <CheckIcon className="size-3.5" strokeWidth={3} /> : n}
               </span>
               <p className={`mt-1.5 text-xs font-semibold ${current ? "text-slate-900" : "text-slate-500"}`}>{label}</p>
             </li>
@@ -129,7 +129,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                     rel="noopener noreferrer"
                     className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
                   >
-                    Нийтэд харагдах хуудас ↗
+                    <span className="inline-flex items-center gap-1">
+                      Нийтэд харагдах хуудас
+                      <ArrowUpRightIcon className="size-3.5" />
+                    </span>
                   </a>
                 )}
               </div>
@@ -144,8 +147,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
             {paidUp ? (
               <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                 <div className="flex items-start gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500 font-bold text-white">
-                    ✓
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
+                    <CheckIcon className="size-4" strokeWidth={3} />
                   </span>
                   <div>
                     <h2 className="font-bold text-emerald-900">Төлбөр төлөгдсөн</h2>
@@ -175,7 +178,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
 
               {pending ? (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="font-semibold text-amber-900">⏳ Төлбөр шалгагдаж байна</p>
+                  <p className="flex items-center gap-2 font-semibold text-amber-900">
+                    <ClockIcon className="size-4" />
+                    Төлбөр шалгагдаж байна
+                  </p>
                   <p className="mt-1 text-sm text-amber-800">
                     {pending.months} сар · {formatMNT(pending.amount)} · {formatDate(pending.createdAt)}-нд илгээсэн
                   </p>
@@ -206,8 +212,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
               <QRPanel id={person.id} name={person.name} />
             ) : (
               <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-center">
-                <div className="mx-auto grid aspect-square w-full max-w-[200px] place-items-center rounded-2xl bg-slate-50 text-5xl text-slate-300">
-                  🔒
+                <div className="mx-auto grid aspect-square w-full max-w-[200px] place-items-center rounded-2xl bg-slate-50 text-slate-300">
+                  <LockIcon className="size-12" strokeWidth={1.5} />
                 </div>
                 <p className="mt-4 font-semibold text-slate-700">QR код</p>
                 <p className="mt-1 text-xs text-slate-500">

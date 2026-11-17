@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listPendingRequests, listPeople } from "@/lib/store";
-import { PlusIcon, QrIcon, ArrowUpRightIcon } from "@/lib/icons";
+import { ArrowUpRightIcon, PlusIcon, QrIcon, UserIcon } from "@/lib/icons";
 import { Avatar } from "@/app/_components/Avatar";
 import { StatusBadge } from "@/app/_components/StatusBadge";
 import { billingStatus } from "@/lib/billing";
@@ -92,7 +92,14 @@ export default async function AdminPage() {
                   </Link>
                   <p className="truncate text-sm font-semibold text-t-ink">{p.position || "—"}</p>
                   <p className="mt-1 truncate text-xs text-slate-400">
-                    {p.ownerPhone ? `👤 ${p.ownerPhone}` : p.organization || " "}
+                    {p.ownerPhone ? (
+                      <span className="inline-flex items-center gap-1">
+                        <UserIcon className="size-3.5" />
+                        {p.ownerPhone}
+                      </span>
+                    ) : (
+                      p.organization || " "
+                    )}
                   </p>
                   <div className="mt-3">
                     <StatusBadge paidUntil={p.paidUntil} now={now} />

@@ -143,3 +143,37 @@ export const SparkIcon = (p: P) => (
     <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
   </Base>
 );
+export const CheckIcon = (p: P) => (
+  <Base {...p}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Base>
+);
+export const LockIcon = (p: P) => (
+  <Base {...p}>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+    <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+  </Base>
+);
+export const ClockIcon = (p: P) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </Base>
+);
+export const EyeIcon = (p: P) => (
+  <Base {...p}>
+    <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </Base>
+);
+export const PauseIcon = (p: P) => (
+  <Base {...p}>
+    <path d="M9 6v12M15 6v12" />
+  </Base>
+);
+export const UserIcon = (p: P) => (
+  <Base {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </Base>
+);

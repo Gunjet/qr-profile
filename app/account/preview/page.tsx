@@ -1,3 +1,4 @@
+import { EyeIcon } from "@/lib/icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/users";
@@ -14,7 +15,10 @@ export default async function PreviewPage() {
   return (
     <div className="-mx-4 -my-8 sm:-mx-6">
       <div className="flex items-center justify-between gap-3 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 sm:px-6">
-        <span>👁 Урьдчилан харах — зочид ингэж харна</span>
+        <span className="inline-flex items-center gap-2">
+          <EyeIcon className="size-4" />
+          Урьдчилан харах — зочид ингэж харна
+        </span>
         <Link href="/account" className="font-semibold underline-offset-2 hover:underline">
           Буцах
         </Link>

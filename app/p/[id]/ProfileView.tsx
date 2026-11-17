@@ -135,8 +135,7 @@ export function ProfileView({ person }: { person: Person }) {
           {/* ABOUT */}
           {person.about && (
             <Card title="Танилцуулга" delay={120}>
-              <div className="relative pl-4">
-                <span className="absolute top-0 left-0 h-full w-[3px] rounded-full bg-gradient-to-b from-t-accent to-t-accent/0" />
+              <div>
                 <p className="text-[15px] leading-relaxed whitespace-pre-line text-slate-600">{person.about}</p>
               </div>
             </Card>
@@ -144,7 +143,7 @@ export function ProfileView({ person }: { person: Person }) {
 
           {/* EXPERIENCE */}
           {person.experience.length > 0 && (
-            <Card title="Ажлын туршлага" count={person.experience.length} delay={160}>
+            <Card title="Ажлын туршлага" delay={160}>
               <ol className="relative">
                 {person.experience.map((e, i) => {
                   const current = i === 0;
@@ -166,7 +165,7 @@ export function ProfileView({ person }: { person: Person }) {
                           )}
                           {current && /одоо/i.test(e.period) && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
-                              <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                              <span className="size-1.5 rounded-full bg-emerald-500" />
                               ОДОО
                             </span>
                           )}
@@ -251,9 +250,6 @@ export function ProfileView({ person }: { person: Person }) {
             </Card>
           )}
 
-          <footer className="flex justify-center pt-6 pb-2">
-            <Khee className="w-40 text-t-ink/20" />
-          </footer>
         </div>
 
         {/* ───────── STICKY SAVE CONTACT ───────── */}
@@ -273,12 +269,10 @@ export function ProfileView({ person }: { person: Person }) {
 
 function Card({
   title,
-  count,
   delay = 0,
   children,
 }: {
   title: string;
-  count?: number;
   delay?: number;
   children: React.ReactNode;
 }) {
@@ -288,13 +282,7 @@ function Card({
       style={{ animationDelay: `${delay}ms` }}
     >
       <h2 className="mb-4 flex items-center gap-2 text-[11px] font-extrabold tracking-[0.18em] text-slate-400 uppercase">
-        <span className="size-1.5 rotate-45 bg-t-accent" />
         {title}
-        {count !== undefined && (
-          <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[10px] tracking-normal text-slate-500">
-            {count}
-          </span>
-        )}
       </h2>
       {children}
     </section>
@@ -328,7 +316,6 @@ function ContactRow({
           <span className="block text-[11px] font-semibold text-slate-400">{label}</span>
           <span className={`mt-0.5 block text-[15px] font-bold text-slate-800 ${wrap ? "" : "truncate"}`}>{value}</span>
         </span>
-        <ArrowUpRightIcon className="size-4 text-slate-300 transition group-hover:text-t-ink" />
       </a>
     </li>
   );
