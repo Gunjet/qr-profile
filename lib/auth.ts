@@ -3,6 +3,7 @@
 // the password on Vercel logs everyone out. Uses Web Crypto so it also runs in proxy.ts.
 
 export const SESSION_COOKIE = "qp_admin";
+export const ADMIN_USERNAME = "admin"; // typed into the normal /login form
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 async function hmac(key: string, msg: string) {

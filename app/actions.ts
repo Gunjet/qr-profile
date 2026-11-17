@@ -16,34 +16,19 @@ import {
 } from "@/lib/store";
 import { BILLING, EXTEND_OPTIONS } from "@/lib/billing";
 import { parsePersonForm } from "@/lib/person-form";
-import { SESSION_COOKIE, SESSION_MAX_AGE, checkPassword, isValidSession, sessionToken } from "@/lib/auth";
+import { SESSION_COOKIE, isValidSession } from "@/lib/auth";
+import { endAdminSession } from "@/lib/admin-session";
 
 // Server actions are reachable by direct POST requests, so every mutating
 // action re-checks the admin session (proxy.ts only guards page navigation).
 async function requireAdmin() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await isValidSession(token))) redirect("/admin/login");
-}
-
-export async function adminLogin(_prev: string | null, formData: FormData): Promise<string | null> {
-  const pw = String(formData.get("password") ?? "");
-  if (!(await checkPassword(pw))) {
-    await new Promise((r) => setTimeout(r, 600)); // slow down guessing
-    return "Нууц үг буруу байна";
-  }
-  (await cookies()).set(SESSION_COOKIE, (await sessionToken())!, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-  });
-  redirect("/admin");
+  if (!(await isValidSession(token))) redirect("/login");
 }
 
 export async function adminLogout() {
-  (await cookies()).delete(SESSION_COOKIE);
-  redirect("/admin/login");
+  await endAdminSession();
+  redirect("/login");
 }
 
 function revalidateProfile(id: string) {

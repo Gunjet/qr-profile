@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { BILLING, EXTEND_OPTIONS } from "@/lib/billing";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
+import { ADMIN_USERNAME, checkPassword } from "@/lib/auth";
+import { startAdminSession } from "@/lib/admin-session";
 import { parsePersonForm } from "@/lib/person-form";
 import {
   closeRequest,
@@ -49,6 +51,17 @@ export async function signup(_prev: FormState, fd: FormData): Promise<FormState>
 export async function login(_prev: FormState, fd: FormData): Promise<FormState> {
   const rawPhone = String(fd.get("phone") ?? "");
   const password = String(fd.get("password") ?? "");
+
+  // The admin signs in on the same form with the username "admin".
+  if (rawPhone.trim().toLowerCase() === ADMIN_USERNAME) {
+    if (!(await checkPassword(password))) {
+      await slow();
+      return { phone: rawPhone, error: "Утасны дугаар эсвэл нууц үг буруу байна" };
+    }
+    await startAdminSession();
+    redirect("/admin");
+  }
+
   const phone = normalizePhone(rawPhone);
 
   const found = phone ? await getUserForLogin(phone) : null;

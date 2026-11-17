@@ -13,9 +13,10 @@ export function LoginForm() {
       <Field label="Утасны дугаар">
         <input
           name="phone"
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel"
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
           required
           defaultValue={state?.phone}
           placeholder="8800 0000"

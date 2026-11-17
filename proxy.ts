@@ -6,11 +6,10 @@ import { USER_COOKIE } from "@/lib/user-cookie";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Admin area (except its login page) needs the admin cookie.
+  // Admin area needs the admin cookie (admin signs in on /login as "admin").
   if (pathname.startsWith("/admin")) {
-    if (pathname === "/admin/login") return NextResponse.next();
     if (await isValidSession(request.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Account area: bounce visitors with no session cookie straight to /login.
