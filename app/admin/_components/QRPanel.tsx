@@ -19,8 +19,10 @@ export function QRPanel({ id, name }: { id: string; name: string }) {
     // Set NEXT_PUBLIC_SITE_URL to your real domain so printed codes point to production.
     const base = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const u = `${base.replace(/\/$/, "")}/p/${id}`;
-    setUrl(u);
-    QRCode.toString(u, { ...QR_OPTS, type: "svg" }).then(setSvg);
+    QRCode.toString(u, { ...QR_OPTS, type: "svg" }).then((s) => {
+      setUrl(u);
+      setSvg(s);
+    });
   }, [id]);
 
   const fileBase = `qr-${name.replace(/\s+/g, "-") || id}`;

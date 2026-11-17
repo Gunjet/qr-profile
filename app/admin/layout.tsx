@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { QrIcon } from "@/lib/icons";
+import { logout } from "@/app/actions";
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
@@ -17,6 +18,14 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
               </span>
             </span>
           </Link>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              Гарах
+            </button>
+          </form>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
