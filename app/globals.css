@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f6fb;
+  --foreground: #0f172a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans-app), ui-sans-serif, system-ui, sans-serif;
+
+  /* Admin brand: Mongolian flag blue + soyombo gold */
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe7ff;
+  --color-brand-200: #bcd2ff;
+  --color-brand-500: #2563eb;
+  --color-brand-600: #1748c4;
+  --color-brand-700: #123a9e;
+  --color-brand-800: #0f2f7d;
+  --color-brand-900: #0b2a6b;
+  --color-brand-950: #071a45;
+  --color-gold-300: #fde68a;
+  --color-gold-400: #fcd34d;
+  --color-gold-500: #f5b70a;
+
+  /* Profile theme tokens (set by .theme-* classes below) */
+  --color-t-hero1: var(--t-hero1);
+  --color-t-hero2: var(--t-hero2);
+  --color-t-hero3: var(--t-hero3);
+  --color-t-accent: var(--t-accent);
+  --color-t-primary: var(--t-primary);
+  --color-t-soft: var(--t-soft);
+  --color-t-ink: var(--t-ink);
+  --color-t-bg: var(--t-bg);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* ---------- Profile themes ---------- */
+.theme-navy {
+  --t-hero1: #2563eb;
+  --t-hero2: #0b2a6b;
+  --t-hero3: #061637;
+  --t-accent: #f8c537;
+  --t-primary: #0b2a6b;
+  --t-soft: #eef3ff;
+  --t-ink: #1748c4;
+  --t-bg: #f2f5fb;
+}
+.theme-emerald {
+  --t-hero1: #34a07a;
+  --t-hero2: #1e4d3c;
+  --t-hero3: #0c201a;
+  --t-accent: #e9c57f;
+  --t-primary: #14382c;
+  --t-soft: #eaf6f0;
+  --t-ink: #1f7a57;
+  --t-bg: #f1f6f3;
+}
+.theme-crimson {
+  --t-hero1: #dc2645;
+  --t-hero2: #7a0f22;
+  --t-hero3: #33050e;
+  --t-accent: #f6c855;
+  --t-primary: #5c0b1a;
+  --t-soft: #fdf0f2;
+  --t-ink: #b4142f;
+  --t-bg: #faf4f5;
+}
+.theme-sky {
+  --t-hero1: #38bdf8;
+  --t-hero2: #0369a1;
+  --t-hero3: #0c2d4a;
+  --t-accent: #fde047;
+  --t-primary: #0c4a6e;
+  --t-soft: #e6f5fd;
+  --t-ink: #0369a1;
+  --t-bg: #f0f7fb;
+}
+.theme-steppe {
+  --t-hero1: #d39a5c;
+  --t-hero2: #8a5a2b;
+  --t-hero3: #352010;
+  --t-accent: #fde7b0;
+  --t-primary: #3d2614;
+  --t-soft: #fbf2e6;
+  --t-ink: #9a5b1f;
+  --t-bg: #f8f4ee;
+}
+.theme-midnight {
+  --t-hero1: #64748b;
+  --t-hero2: #1e293b;
+  --t-hero3: #020617;
+  --t-accent: #a5b4fc;
+  --t-primary: #0f172a;
+  --t-soft: #eef2ff;
+  --t-ink: #4f46e5;
+  --t-bg: #f1f5f9;
+}
+
+/* Hero background: theme gradient + soft lights */
+.hero-bg {
+  background:
+    radial-gradient(110% 70% at 90% -10%, color-mix(in srgb, var(--t-accent, #f5b70a) 28%, transparent), transparent 60%),
+    radial-gradient(90% 70% at -10% 0%, color-mix(in srgb, var(--t-hero1, #2563eb) 85%, transparent), transparent 65%),
+    linear-gradient(165deg, var(--t-hero1, #123a9e) 0%, var(--t-hero2, #0b2a6b) 50%, var(--t-hero3, #071a45) 100%);
+}
+.hero-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 16px 16px;
+  mask-image: radial-gradient(80% 70% at 50% 30%, black, transparent);
+}
+
+/* Page backdrop on desktop: blurred theme glow behind the profile card */
+.page-glow {
+  background:
+    radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--t-hero1) 22%, transparent), transparent 70%),
+    var(--t-bg);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop {
+  animation: pop 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .pop {
+    animation: none;
+  }
+}
