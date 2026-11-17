@@ -27,6 +27,11 @@ const globalForPg = globalThis as unknown as { pgPool?: Pool };
 
 function pool(): Pool {
   if (!DB_URL) throw new Error("DATABASE_URL is not set");
+  if (!/^postgres(ql)?:\/\//.test(DB_URL)) {
+    throw new Error(
+      'DATABASE_URL must start with "postgresql://" (no quotes, no "DATABASE_URL=" prefix, single line). Fix it in Vercel → Settings → Environment Variables and redeploy.',
+    );
+  }
   if (!globalForPg.pgPool) {
     globalForPg.pgPool = new Pool({ connectionString: DB_URL, max: 5, idleTimeoutMillis: 5_000 });
     attachDatabasePool(globalForPg.pgPool);
