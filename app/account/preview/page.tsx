@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageSkeleton } from "@/app/_components/PageSkeleton";
 import { EyeIcon } from "@/lib/icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -6,7 +8,15 @@ import { getPersonByOwner } from "@/lib/store";
 import { ProfileView } from "@/app/p/[id]/ProfileView";
 
 // Owner-only preview: renders the profile even before it is paid / live.
-export default async function PreviewPage() {
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <PreviewPageContent />
+    </Suspense>
+  );
+}
+
+async function PreviewPageContent() {
   const user = await currentUser();
   if (!user) redirect("/login");
   const person = await getPersonByOwner(user.id);

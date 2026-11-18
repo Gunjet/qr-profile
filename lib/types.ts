@@ -11,14 +11,31 @@ export type Social = {
   url: string;
 };
 
+export type ProfileKind = "person" | "business";
+
+export type MenuItem = {
+  name: string;
+  description: string;
+  price: number | null; // ₮
+  photo: string; // small data URL or empty
+};
+
+export type MenuSection = {
+  title: string;
+  items: MenuItem[];
+};
+
 export type Person = {
   id: string;
+  kind: ProfileKind; // "person" = personal intro, "business" = restaurant / menu
   name: string;
   position: string;
   organization: string;
   photo: string; // data URL (resized on the client) or empty
   about: string;
   experience: Experience[];
+  hours: string; // business opening hours, free text
+  menu: MenuSection[]; // business only
   phones: string[];
   email: string;
   address: string;

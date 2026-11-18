@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageSkeleton } from "@/app/_components/PageSkeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPerson, listPayments } from "@/lib/store";
@@ -7,7 +9,15 @@ import { PersonForm } from "@/app/_components/PersonForm";
 import { QRPanel } from "@/app/_components/QRPanel";
 import { BillingPanel } from "../_components/BillingPanel";
 
-export default async function EditPersonPage({ params, searchParams }: PageProps<"/admin/[id]">) {
+export default function EditPersonPage(props: PageProps<"/admin/[id]">) {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <EditPersonPageContent {...props} />
+    </Suspense>
+  );
+}
+
+async function EditPersonPageContent({ params, searchParams }: PageProps<"/admin/[id]">) {
   const { id } = await params;
   const sp = await searchParams;
   const person = await getPerson(id);
@@ -29,9 +39,12 @@ export default async function EditPersonPage({ params, searchParams }: PageProps
 
   return (
     <div>
-      <Link href="/admin" className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-900">
+      <Link
+        href="/admin"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-900"
+      >
         <ChevronLeftIcon className="size-4" />
-        Бүх хүмүүс
+        Бүх профайл
       </Link>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{person.name}</h1>
@@ -56,7 +69,12 @@ export default async function EditPersonPage({ params, searchParams }: PageProps
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-        <PersonForm person={person} action={savePerson.bind(null, person.id)} submitLabel="Хадгалах" />
+        <PersonForm
+          person={person}
+          kind={person.kind}
+          action={savePerson.bind(null, person.id)}
+          submitLabel="Хадгалах"
+        />
         <aside className="order-first lg:order-none">
           <div className={`theme-${person.theme} space-y-6`}>
             <BillingPanel person={person} payments={payments} now={now} />

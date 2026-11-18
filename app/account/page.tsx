@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageSkeleton } from "@/app/_components/PageSkeleton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/users";
@@ -11,7 +13,15 @@ import { Avatar } from "@/app/_components/Avatar";
 import { ArrowUpRightIcon, CheckIcon, ClockIcon, EditIcon, LockIcon } from "@/lib/icons";
 import { PlanPicker } from "./PlanPicker";
 
-export default async function AccountPage({ searchParams }: PageProps<"/account">) {
+export default function AccountPage(props: PageProps<"/account">) {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <AccountPageContent {...props} />
+    </Suspense>
+  );
+}
+
+async function AccountPageContent({ searchParams }: PageProps<"/account">) {
   const user = await currentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
@@ -63,12 +73,20 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
             <li
               key={label}
               className={`rounded-xl border px-3 py-2.5 ${
-                current ? "border-brand-600 bg-white" : done ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white/60"
+                current
+                  ? "border-brand-600 bg-white"
+                  : done
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-slate-200 bg-white/60"
               }`}
             >
               <span
                 className={`grid size-6 place-items-center rounded-full text-xs font-bold ${
-                  done ? "bg-emerald-500 text-white" : current ? "bg-brand-900 text-gold-400" : "bg-slate-200 text-slate-500"
+                  done
+                    ? "bg-emerald-500 text-white"
+                    : current
+                      ? "bg-brand-900 text-gold-400"
+                      : "bg-slate-200 text-slate-500"
                 }`}
               >
                 {done ? <CheckIcon className="size-3.5" strokeWidth={3} /> : n}
@@ -84,7 +102,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         <section className="rounded-2xl border border-slate-200/70 bg-white p-8 text-center">
           <h2 className="text-lg font-bold text-slate-900">Профайлаа үүсгэе</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
-            Зураг, нэр, албан тушаал, туршлага, холбоо барих мэдээллээ оруулна. Төлбөр төлөхөөс өмнө урьдчилан харж болно.
+            Зураг, нэр, албан тушаал, туршлага, холбоо барих мэдээллээ оруулна. Төлбөр төлөхөөс өмнө урьдчилан харж
+            болно.
           </p>
           <Link
             href="/account/profile"
@@ -101,7 +120,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
             {/* Profile summary */}
             <section className={`theme-${person.theme} rounded-2xl border border-slate-200/70 bg-white p-5`}>
               <div className="flex items-center gap-4">
-                <Avatar name={person.name} photo={person.photo} className="size-14 text-lg" />
+                <Avatar
+                  name={person.name}
+                  photo={person.photo}
+                  logo={person.kind === "business"}
+                  className="size-14 text-lg"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold text-slate-900">{person.name}</p>
                   <p className="truncate text-sm text-slate-500">{person.position || "—"}</p>
@@ -169,40 +193,43 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                 </div>
               </section>
             ) : (
-            <section className="rounded-2xl border border-slate-200/70 bg-white p-5">
-              <h2 className="font-bold text-slate-900">{live ? "Хугацаа сунгах" : "Төлбөр төлөх"}</h2>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Сарын төлбөр {formatMNT(BILLING.monthlyPrice)}.{" "}
-                {live ? "Хугацаа дуусахаас өмнө сунгаарай." : "Төлбөр баталгаажмагц QR код гарч ирнэ."}
-              </p>
+              <section className="rounded-2xl border border-slate-200/70 bg-white p-5">
+                <h2 className="font-bold text-slate-900">{live ? "Хугацаа сунгах" : "Төлбөр төлөх"}</h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Сарын төлбөр {formatMNT(BILLING.monthlyPrice)}.{" "}
+                  {live ? "Хугацаа дуусахаас өмнө сунгаарай." : "Төлбөр баталгаажмагц QR код гарч ирнэ."}
+                </p>
 
-              {pending ? (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="flex items-center gap-2 font-semibold text-amber-900">
-                    <ClockIcon className="size-4" />
-                    Төлбөр шалгагдаж байна
-                  </p>
-                  <p className="mt-1 text-sm text-amber-800">
-                    {pending.months} сар · {formatMNT(pending.amount)} · {formatDate(pending.createdAt)}-нд илгээсэн
-                  </p>
-                  <form action={cancelPaymentRequest.bind(null, pending.id)} className="mt-3">
-                    <button type="submit" className="text-xs font-semibold text-amber-700 underline-offset-2 hover:underline">
-                      Цуцлах
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                <div className="mt-4 space-y-4">
-                  <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200">
-                    <BankRow label="Банк" value={BILLING.bankName} />
-                    <BankRow label="Дансны дугаар" value={BILLING.account} copy mono />
-                    <BankRow label="Хүлээн авагч" value={BILLING.holder} />
-                    <BankRow label="Гүйлгээний утга" value={refCode(person.id)} copy mono highlight />
-                  </dl>
-                  <PlanPicker options={EXTEND_OPTIONS} monthlyPrice={BILLING.monthlyPrice} />
-                </div>
-              )}
-            </section>
+                {pending ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="flex items-center gap-2 font-semibold text-amber-900">
+                      <ClockIcon className="size-4" />
+                      Төлбөр шалгагдаж байна
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800">
+                      {pending.months} сар · {formatMNT(pending.amount)} · {formatDate(pending.createdAt)}-нд илгээсэн
+                    </p>
+                    <form action={cancelPaymentRequest.bind(null, pending.id)} className="mt-3">
+                      <button
+                        type="submit"
+                        className="text-xs font-semibold text-amber-700 underline-offset-2 hover:underline"
+                      >
+                        Цуцлах
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                      <BankRow label="Банк" value={BILLING.bankName} />
+                      <BankRow label="Дансны дугаар" value={BILLING.account} copy mono />
+                      <BankRow label="Хүлээн авагч" value={BILLING.holder} />
+                      <BankRow label="Гүйлгээний утга" value={refCode(person.id)} copy mono highlight />
+                    </dl>
+                    <PlanPicker options={EXTEND_OPTIONS} monthlyPrice={BILLING.monthlyPrice} />
+                  </div>
+                )}
+              </section>
             )}
           </div>
 
@@ -217,7 +244,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
                 </div>
                 <p className="mt-4 font-semibold text-slate-700">QR код</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {everPaid ? "Хугацаа дууссан. Сунгасны дараа дахин идэвхжинэ." : "Төлбөр баталгаажсаны дараа энд гарч ирнэ."}
+                  {everPaid
+                    ? "Хугацаа дууссан. Сунгасны дараа дахин идэвхжинэ."
+                    : "Төлбөр баталгаажсаны дараа энд гарч ирнэ."}
                 </p>
               </div>
             )}

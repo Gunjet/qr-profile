@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import type { Person } from "@/lib/types";
+import type { Person, ProfileKind } from "@/lib/types";
 import { SOCIAL_TYPES } from "@/lib/types";
 import { THEMES, themeOf } from "@/lib/themes";
 import { CameraIcon, PlusIcon, QrIcon, TrashIcon } from "@/lib/icons";
+import { MenuEditor } from "./MenuEditor";
+import { prepareLogo, resizeImage } from "./resizeImage";
 
 type Row<T> = T & { key: number };
 let keySeq = 0;
@@ -16,13 +18,16 @@ const inputCls =
 
 export function PersonForm({
   person,
+  kind,
   action,
   submitLabel,
 }: {
   person?: Person;
+  kind: ProfileKind;
   action: (formData: FormData) => Promise<void>;
   submitLabel: string;
 }) {
+  const biz = kind === "business";
   const [photo, setPhoto] = useState(person?.photo ?? "");
   const [theme, setTheme] = useState<string>(themeOf(person?.theme));
   const [experience, setExperience] = useState(() =>
@@ -31,35 +36,45 @@ export function PersonForm({
   const [phones, setPhones] = useState(() =>
     (person?.phones.length ? person.phones : [""]).map((value) => withKey({ value })),
   );
-  const [socials, setSocials] = useState(() =>
-    (person?.socials ?? []).map(withKey),
-  );
+  const [socials, setSocials] = useState(() => (person?.socials ?? []).map(withKey));
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
-    setPhoto(await resizeImage(file, 480));
+    if (!biz) return setPhoto(await resizeImage(file, 480));
+    try {
+      setPhoto(await prepareLogo(file));
+    } catch (e) {
+      alert((e as Error).message);
+    }
   }
 
   return (
     <form action={action} className="space-y-5">
       <input type="hidden" name="photo" value={photo} />
+      <input type="hidden" name="kind" value={kind} />
 
-      <Section title="Үндсэн мэдээлэл" hint="Профайлын дээд хэсэгт харагдана">
+      <Section title="Үндсэн мэдээлэл" hint={biz ? "Цэсний дээд хэсэгт харагдана" : "Профайлын дээд хэсэгт харагдана"}>
         <div className="flex flex-col gap-6 sm:flex-row">
           <div className="flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="group relative grid size-32 place-items-center overflow-hidden rounded-full border-2 border-dashed border-slate-300 bg-slate-50 text-slate-400 transition hover:border-brand-500 hover:text-brand-500"
+              className={`group relative grid size-32 place-items-center overflow-hidden border-2 border-dashed border-slate-300 bg-slate-50 text-slate-400 transition hover:border-brand-500 hover:text-brand-500 ${
+                biz ? "rounded-2xl" : "rounded-full"
+              }`}
             >
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo} alt="" className="size-full object-cover" />
+                <img
+                  src={photo}
+                  alt=""
+                  className={biz ? "size-full bg-white object-contain p-3" : "size-full object-cover"}
+                />
               ) : (
                 <span className="flex flex-col items-center gap-1 text-xs font-semibold">
                   <CameraIcon className="size-7" />
-                  Зураг
+                  {biz ? "Лого" : "Зураг"}
                 </span>
               )}
               {photo && (
@@ -71,10 +86,11 @@ export function PersonForm({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept={biz ? "image/svg+xml,image/png,image/jpeg,image/webp,.svg" : "image/*"}
               className="hidden"
               onChange={(e) => onPhoto(e.target.files?.[0])}
             />
+            {biz && !photo && <span className="text-[11px] text-slate-400">SVG, PNG, JPG</span>}
             {photo && (
               <button
                 type="button"
@@ -87,22 +103,54 @@ export function PersonForm({
           </div>
 
           <div className="grid flex-1 gap-4">
-            <Field label="Овог нэр" required>
-              <input name="name" required defaultValue={person?.name} placeholder="Жишээ: Батболд Ганзориг" className={inputCls} />
+            <Field label={biz ? "Байгууллагын нэр" : "Овог нэр"} required>
+              <input
+                name="name"
+                required
+                defaultValue={person?.name}
+                placeholder={biz ? "Жишээ: Говийн Тогоо ресторан" : "Жишээ: Батболд Ганзориг"}
+                className={inputCls}
+              />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Албан тушаал">
-                <input name="position" defaultValue={person?.position} placeholder="Засаг дарга" className={inputCls} />
-              </Field>
-              <Field label="Байгууллага / нэгж">
-                <input
-                  name="organization"
-                  defaultValue={person?.organization}
-                  placeholder="Даланзадгад сум, 7-р баг"
-                  className={inputCls}
-                />
-              </Field>
-            </div>
+            {biz ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Төрөл / уриа">
+                  <input
+                    name="position"
+                    defaultValue={person?.position}
+                    placeholder="Монгол үндэсний хоол"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Цагийн хуваарь">
+                  <input
+                    name="hours"
+                    defaultValue={person?.hours}
+                    placeholder="Өдөр бүр 10:00–22:00"
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Албан тушаал">
+                  <input
+                    name="position"
+                    defaultValue={person?.position}
+                    placeholder="Засаг дарга"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Байгууллага / нэгж">
+                  <input
+                    name="organization"
+                    defaultValue={person?.organization}
+                    placeholder="Даланзадгад сум, 7-р баг"
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+            )}
           </div>
         </div>
       </Section>
@@ -142,40 +190,51 @@ export function PersonForm({
         </div>
       </Section>
 
-      <Section title="Танилцуулга" hint="Товч намтар, зорилго гэх мэт (заавал биш)">
+      {biz && (
+        <Section title="Хоолны цэс" hint="Ангилал үүсгээд хоол бүрийн нэр, үнэ, зургийг оруулна">
+          <MenuEditor initial={person?.menu ?? []} />
+        </Section>
+      )}
+
+      <Section
+        title={biz ? "Бидний тухай" : "Танилцуулга"}
+        hint={biz ? "Товч танилцуулга (заавал биш)" : "Товч намтар, зорилго гэх мэт (заавал биш)"}
+      >
         <textarea
           name="about"
           rows={4}
           defaultValue={person?.about}
-          placeholder="Өөрийн тухай товч танилцуулга…"
+          placeholder={biz ? "Манай газрын тухай…" : "Өөрийн тухай товч танилцуулга…"}
           className={`${inputCls} resize-y`}
         />
       </Section>
 
-      <Section title="Ажлын туршлага" hint="Хамгийн сүүлийнхийг эхэнд нь бичнэ">
-        <div className="space-y-3">
-          {experience.map((e, i) => (
-            <div key={e.key} className="flex items-start gap-2">
-              <span className="mt-3 grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[11px] font-bold text-brand-600">
-                {i + 1}
-              </span>
-              <div className="grid flex-1 gap-2 sm:grid-cols-[150px_1fr]">
-                <input name="exp_period" defaultValue={e.period} placeholder="2019–2023" className={inputCls} />
-                <input
-                  name="exp_title"
-                  defaultValue={e.title}
-                  placeholder="ХХААГазарт ахлах мэргэжилтэн"
-                  className={inputCls}
-                />
+      {!biz && (
+        <Section title="Ажлын туршлага" hint="Хамгийн сүүлийнхийг эхэнд нь бичнэ">
+          <div className="space-y-3">
+            {experience.map((e, i) => (
+              <div key={e.key} className="flex items-start gap-2">
+                <span className="mt-3 grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[11px] font-bold text-brand-600">
+                  {i + 1}
+                </span>
+                <div className="grid flex-1 gap-2 sm:grid-cols-[150px_1fr]">
+                  <input name="exp_period" defaultValue={e.period} placeholder="2019–2023" className={inputCls} />
+                  <input
+                    name="exp_title"
+                    defaultValue={e.title}
+                    placeholder="ХХААГазарт ахлах мэргэжилтэн"
+                    className={inputCls}
+                  />
+                </div>
+                <RemoveButton onClick={() => setExperience((xs) => xs.filter((x) => x.key !== e.key))} />
               </div>
-              <RemoveButton onClick={() => setExperience((xs) => xs.filter((x) => x.key !== e.key))} />
-            </div>
-          ))}
-          <AddButton onClick={() => setExperience((xs) => [...xs, withKey({ period: "", title: "" })])}>
-            Туршлага нэмэх
-          </AddButton>
-        </div>
-      </Section>
+            ))}
+            <AddButton onClick={() => setExperience((xs) => [...xs, withKey({ period: "", title: "" })])}>
+              Туршлага нэмэх
+            </AddButton>
+          </div>
+        </Section>
+      )}
 
       <Section title="Холбоо барих">
         <div className="grid gap-4">
@@ -191,7 +250,13 @@ export function PersonForm({
             </div>
           </Field>
           <Field label="Имэйл">
-            <input name="email" type="email" defaultValue={person?.email} placeholder="name@example.com" className={inputCls} />
+            <input
+              name="email"
+              type="email"
+              defaultValue={person?.email}
+              placeholder="name@example.com"
+              className={inputCls}
+            />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Хаяг">
@@ -203,7 +268,13 @@ export function PersonForm({
               />
             </Field>
             <Field label="Google Maps холбоос (заавал биш)">
-              <input name="mapUrl" type="url" defaultValue={person?.mapUrl} placeholder="https://maps.app.goo.gl/…" className={inputCls} />
+              <input
+                name="mapUrl"
+                type="url"
+                defaultValue={person?.mapUrl}
+                placeholder="https://maps.app.goo.gl/…"
+                className={inputCls}
+              />
             </Field>
           </div>
         </div>
@@ -221,8 +292,19 @@ export function PersonForm({
                     </option>
                   ))}
                 </select>
-                <input name="social_label" defaultValue={s.label} placeholder="Багийн фэйсбүүк групп" className={inputCls} />
-                <input name="social_url" type="url" defaultValue={s.url} placeholder="https://facebook.com/…" className={inputCls} />
+                <input
+                  name="social_label"
+                  defaultValue={s.label}
+                  placeholder="Багийн фэйсбүүк групп"
+                  className={inputCls}
+                />
+                <input
+                  name="social_url"
+                  type="url"
+                  defaultValue={s.url}
+                  placeholder="https://facebook.com/…"
+                  className={inputCls}
+                />
               </div>
               <RemoveButton onClick={() => setSocials((xs) => xs.filter((x) => x.key !== s.key))} />
             </div>
@@ -305,23 +387,4 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
       <TrashIcon className="size-4" />
     </button>
   );
-}
-
-function resizeImage(file: File, size: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const s = Math.min(img.width, img.height);
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = size;
-      const ctx = canvas.getContext("2d")!;
-      // center-crop to a square
-      ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
 }

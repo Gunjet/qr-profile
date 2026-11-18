@@ -24,6 +24,11 @@ const COLS = "p.id, p.data, p.paid_until, p.owner_id, p.created_at, p.updated_at
 const iso = (d: Date) => new Date(d).toISOString();
 const fromRow = (r: Row): Person => ({
   ...r.data,
+  // Older rows predate these fields.
+  kind: r.data.kind === "business" ? "business" : "person",
+  hours: r.data.hours ?? "",
+  menu: Array.isArray(r.data.menu) ? r.data.menu : [],
+  experience: Array.isArray(r.data.experience) ? r.data.experience : [],
   theme: themeOf(r.data.theme),
   id: r.id,
   paidUntil: r.paid_until ? iso(r.paid_until) : null,

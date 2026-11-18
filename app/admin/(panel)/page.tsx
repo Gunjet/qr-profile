@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageSkeleton } from "@/app/_components/PageSkeleton";
 import Link from "next/link";
 import { listPendingRequests, listPeople } from "@/lib/store";
 import { ArrowUpRightIcon, PlusIcon, QrIcon, UserIcon } from "@/lib/icons";
@@ -6,7 +8,15 @@ import { StatusBadge } from "@/app/_components/StatusBadge";
 import { billingStatus } from "@/lib/billing";
 import { PendingPayments } from "./_components/PendingPayments";
 
-export default async function AdminPage() {
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <AdminPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminPageContent() {
   const [people, pending] = await Promise.all([listPeople(), listPendingRequests()]);
   const now = new Date();
   const states = people.map((p) => (p.paidUntil ? billingStatus(p.paidUntil, now).state : "unpaid"));
@@ -25,17 +35,15 @@ export default async function AdminPage() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Хүмүүс</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Нийт {people.length} профайл · Хүн бүрт тусдаа QR код үүснэ
-          </p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Профайлууд</h1>
+          <p className="mt-1 text-sm text-slate-500">Нийт {people.length} профайл · Хүн бүрт тусдаа QR код үүснэ</p>
         </div>
         <Link
           href="/admin/new"
           className="inline-flex items-center gap-2 rounded-xl bg-brand-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-800"
         >
           <PlusIcon className="size-4" />
-          Шинэ хүн нэмэх
+          Шинэ профайл
         </Link>
       </div>
 
@@ -60,7 +68,7 @@ export default async function AdminPage() {
           <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
             <QrIcon className="size-7" />
           </span>
-          <h2 className="mt-4 font-bold text-slate-800">Одоогоор хүн нэмээгүй байна</h2>
+          <h2 className="mt-4 font-bold text-slate-800">Одоогоор профайл нэмээгүй байна</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
             Хүний мэдээллийг оруулаад “QR код үүсгэх” дармагц тухайн хүний профайл руу орох QR код бэлэн болно.
           </p>
@@ -69,7 +77,7 @@ export default async function AdminPage() {
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-900 px-4 py-2.5 text-sm font-bold text-white"
           >
             <PlusIcon className="size-4" />
-            Эхний хүнээ нэмэх
+            Эхний профайлаа нэмэх
           </Link>
         </div>
       ) : (
@@ -83,7 +91,12 @@ export default async function AdminPage() {
                   <div className="hero-dots absolute inset-0" />
                 </div>
                 <div className="relative -mt-8">
-                  <Avatar name={p.name} photo={p.photo} className="size-16 text-lg ring-4 ring-white" />
+                  <Avatar
+                    name={p.name}
+                    photo={p.photo}
+                    logo={p.kind === "business"}
+                    className="size-16 text-lg ring-4 ring-white"
+                  />
                   <Link
                     href={`/admin/${p.id}`}
                     className="mt-3 block truncate text-[17px] font-bold text-slate-900 after:absolute after:inset-0"

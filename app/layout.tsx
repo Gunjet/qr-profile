@@ -1,9 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Lora, Manrope } from "next/font/google";
 import "./globals.css";
 
 const sans = Manrope({
   variable: "--font-sans-app",
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
+});
+
+// Display serif for menus. Lora has conventional Cyrillic forms and Mongolian Ө/Ү (cyrillic-ext).
+const serif = Lora({
+  variable: "--font-serif-app",
   subsets: ["latin", "cyrillic", "cyrillic-ext"],
 });
 
@@ -18,7 +24,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="mn" className={`${sans.variable} h-full antialiased`}>
+    <html lang="mn" className={`${sans.variable} ${serif.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

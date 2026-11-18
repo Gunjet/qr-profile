@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { BILLING, formatMNT } from "@/lib/billing";
-import { QrIcon } from "@/lib/icons";
+import { BriefcaseIcon, QrIcon, UserIcon } from "@/lib/icons";
 
 export default function Home() {
   const steps = [
     ["Бүртгүүлэх", "Утасны дугаар, нууц үгээрээ бүртгэл үүсгэнэ."],
-    ["Мэдээллээ оруулах", "Зураг, албан тушаал, туршлага, холбоо барих мэдээлэл."],
+    ["Мэдээллээ оруулах", "Хувийн танилцуулга эсвэл байгууллагын хоолны цэс."],
     ["Төлбөр төлөх", `Сарын ${formatMNT(BILLING.monthlyPrice)}. Дансаар шилжүүлнэ.`],
-    ["QR кодоо авах", "Хэвлээд ширээ, нэрийн хуудсандаа байрлуулна."],
+    ["QR кодоо авах", "Хэвлээд ширээ, хаалга, нэрийн хуудсандаа байрлуулна."],
   ];
 
   return (
@@ -27,10 +27,10 @@ export default function Home() {
         </nav>
         <div className="relative mx-auto max-w-5xl px-4 pt-14 pb-24 text-center sm:px-6 sm:pt-20">
           <h1 className="mx-auto max-w-2xl text-4xl leading-tight font-extrabold text-balance sm:text-5xl">
-            Таны танилцуулга — нэг QR кодонд
+            Танилцуулга, хоолны цэс — нэг QR кодонд
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-white/75 sm:text-lg">
-            Ширээн дээрх QR кодыг уншуулахад таны зураг, албан тушаал, туршлага, холбоо барих мэдээлэл шууд нээгдэнэ.
+            QR кодыг уншуулахад таны танилцуулга эсвэл ресторан, кафены цэс утсан дээр шууд нээгдэнэ.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
@@ -61,6 +61,29 @@ export default function Home() {
             </li>
           ))}
         </ol>
+        <div className="mt-14 grid gap-4 md:grid-cols-2">
+          {[
+            {
+              Icon: UserIcon,
+              title: "Хувийн танилцуулга",
+              text: "Ширээн дээрх нэрийн самбар, нэрийн хуудсанд. Зураг, албан тушаал, ажлын туршлага, холбоо барих мэдээлэл.",
+            },
+            {
+              Icon: BriefcaseIcon,
+              title: "Бизнес / Хоолны цэс",
+              text: "Ресторан, кафе, дэлгүүрт. Лого, цагийн хуваарь, ангилал бүхий цэс, үнэ, хоолны зураг.",
+            },
+          ].map(({ Icon, title, text }) => (
+            <div key={title} className="rounded-2xl border border-slate-200 p-6">
+              <span className="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-700">
+                <Icon className="size-5" />
+              </span>
+              <h2 className="mt-4 text-lg font-bold text-slate-900">{title}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500">{text}</p>
+            </div>
+          ))}
+        </div>
+
         <p className="mt-10 text-center text-sm text-slate-500">
           Сарын төлбөр <span className="font-bold text-slate-900">{formatMNT(BILLING.monthlyPrice)}</span> · Хэвлэсэн QR
           код хэзээ ч өөрчлөгдөхгүй
