@@ -7,7 +7,7 @@ import { ArrowUpRightIcon, CopyIcon, DownloadIcon } from "@/lib/icons";
 const QR_OPTS = {
   errorCorrectionLevel: "M" as const,
   margin: 1,
-  color: { dark: "#071a45", light: "#ffffff" },
+  color: { dark: "#000000", light: "#ffffff" }, // pure black: best contrast for scanning and printing
 };
 
 export function QRPanel({ id, name }: { id: string; name: string }) {
